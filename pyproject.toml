@@ -1,8 +1,13 @@
-# >>>>>> ICHASE Project Ruff Settings (version: 0.0.1) >>>>>>
+[tool.poetry.dependencies]
+python = "^3.12"
+pandas = "^2.2.0"  # Use the latest stable version
+
+
+# >>>>>> Ruff Settings (version: 0.0.1) >>>>>>
 [tool.ruff]
 line-length = 120
 indent-width = 4
-target-version = "py37" # ruff does not support Python 3.6
+target-version = "py312" # ruff does not support Python 3.6
 
 [tool.ruff.format]
 docstring-code-line-length = 60
@@ -56,10 +61,13 @@ ignore = [
     "SIM102", # collapsible-if
     "SIM103", # needless-bool
     "SIM108", # if-else-block-instead-of-if-exp
+    "UP006",
+    "UP007",
+    "UP035",
 ]
 
 [tool.ruff.flake8-quotes]
 inline-quotes = "double"
 docstring-quotes = "double"
 multiline-quotes = "double"
-# <<<<<<<<<<<<<< ICHASE Project Ruff Settings <<<<<<<<<<<<<<
+# <<<<<<<<<<<<<< Ruff Settings <<<<<<<<<<<<<<

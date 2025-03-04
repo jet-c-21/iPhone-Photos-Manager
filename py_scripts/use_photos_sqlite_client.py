@@ -3,8 +3,19 @@ Author: Jet C.
 GitHub: https://github.com/jet-c-21
 Create Date: 2025-03-04
 """
+# >>> Dynamic Changing `sys.path` in Runtime by Adding Project Directory to Path >>>
+import pathlib
+import sys
+
+THIS_FILE_PATH = pathlib.Path(__file__).absolute()
+THIS_FILE_PARENT_DIR = THIS_FILE_PATH.parent
+PROJECT_DIR = THIS_FILE_PARENT_DIR.parent.parent
+sys.path.append(str(PROJECT_DIR))
+print(f"[*INFO*] - append directory to path: {PROJECT_DIR}")
+# <<< Dynamic Changing `sys.path` in Runtime by Adding Project Directory to Path <<<
 
 import pathlib
+from pprint import pp
 
 from iphone_photos_manager import PhotosSqliteClient
 
@@ -27,3 +38,6 @@ if __name__ == "__main__":
         pass
 
     folders_and_albums = psc.get_folders_and_albums()
+
+    folders = folders_and_albums["folders"]
+    # can you print the structure tree for folders?

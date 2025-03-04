@@ -2,10 +2,88 @@
 Author: Jet C.
 GitHub: https://github.com/jet-c-21
 Create Date: 2025-03-04
+
+Notes:
+    columns of ZGENERICALBUM:
+        ZCACHEDCOUNT
+        ZCACHEDPHOTOSCOUNT
+        ZCACHEDVIDEOSCOUNT
+        ZCLOUDALBUMSUBTYPE
+        ZCLOUDCREATIONDATE
+        ZCLOUDDELETESTATE
+        ZCLOUDGUID
+        ZCLOUDLASTCONTRIBUTIONDATE
+        ZCLOUDLASTINTERESTINGCHANGEDATE
+        ZCLOUDLOCALSTATE
+        ZCLOUDMETADATA
+        ZCLOUDMULTIPLECONTRIBUTORSENABLED
+        ZCLOUDMULTIPLECONTRIBUTORSENABLEDLOCAL
+        ZCLOUDNOTIFICATIONSENABLED
+        ZCLOUDOWNEREMAILKEY
+        ZCLOUDOWNERFIRSTNAME
+        ZCLOUDOWNERFULLNAME
+        ZCLOUDOWNERHASHEDPERSONID
+        ZCLOUDOWNERISWHITELISTED
+        ZCLOUDOWNERLASTNAME
+        ZCLOUDPERSONID
+        ZCLOUDPUBLICURLENABLED
+        ZCLOUDPUBLICURLENABLEDLOCAL
+        ZCLOUDRELATIONSHIPSTATE
+        ZCLOUDRELATIONSHIPSTATELOCAL
+        ZCLOUDSUBSCRIPTIONDATE
+        ZCREATIONDATE
+        ZCUSTOMKEYASSET
+        ZCUSTOMQUERYPARAMETERS
+        ZCUSTOMQUERYTYPE
+        ZCUSTOMSORTASCENDING
+        ZCUSTOMSORTKEY
+        ZDUPLICATETYPE
+        ZENDDATE
+        ZHASUNSEENCONTENT
+        ZIMPORTEDBYBUNDLEIDENTIFIER
+        ZIMPORTSESSIONID
+        ZISOWNED
+        ZISPINNED
+        ZISPROTOTYPE
+        ZKEYASSET
+        ZKEYASSETFACEIDENTIFIER
+        ZKEYASSETFACETHUMBNAILINDEX
+        ZKIND
+        ZPARENTFOLDER
+        ZPENDINGITEMSCOUNT
+        ZPENDINGITEMSTYPE
+        ZPRIVACYSTATE
+        ZPROCESSINGVERSION
+        ZPROJECTDATA
+        ZPROJECTDOCUMENTTYPE
+        ZPROJECTEXTENSIONIDENTIFIER
+        ZPROJECTRENDERUUID
+        ZPUBLICURL
+        ZSEARCHINDEXREBUILDSTATE
+        ZSEARCHINDEXREBUILDSTATE1
+        ZSECONDARYKEYASSET
+        ZSTARTDATE
+        ZSYNCEVENTORDERKEY
+        ZSYNDICATE
+        ZTERTIARYKEYASSET
+        ZTITLE
+        ZTRASHEDDATE
+        ZTRASHEDSTATE
+        ZUNSEENASSETSCOUNT
+        ZUSERQUERYDATA
+        ZUUID
+        Z_ENT
+        Z_FOK_PARENTFOLDER
+        Z_OPT
+        Z_PK
+
 """
+
 import pathlib
 import sqlite3
 from typing import Dict, List, Union
+
+import pandas as pd
 
 from iphone_photos_manager.photo_entities import PhotoAlbum, PhotoFolder
 
@@ -33,13 +111,13 @@ class PhotosSqliteClient:
         if self.conn:
             self.conn.close()
 
-    def get_table_name_ls(self) -> List[str]:
+    def get_table_name_ls(self) -> list[str]:
         """Retrieve a list of all table names in the database."""
         query = "SELECT name FROM sqlite_master WHERE type='table'"
         self.cursor.execute(query)
         return [row[0] for row in self.cursor.fetchall()]
 
-    def get_col_name_ls_of_table(self, table_name: str, sort_by_name=True) -> List[str]:
+    def get_col_name_ls_of_table(self, table_name: str, sort_by_name=True) -> list[str]:
         """Retrieve column names of a given table."""
         query = f"PRAGMA table_info({table_name})"  # No parameterized query here
         self.cursor.execute(query)
@@ -49,87 +127,133 @@ class PhotosSqliteClient:
 
         return res
 
-    def get_folders_and_albums(self) -> Dict[str, List[Union[PhotoFolder, PhotoAlbum]]]:
+    def get_albums_df(self) -> pd.DataFrame:
         """
-        columns of ZGENERICALBUM:
+        Retrieves album data from the ZGENERICALBUM table and returns it as a Pandas DataFrame.
 
-            ZCACHEDCOUNT
-            ZCACHEDPHOTOSCOUNT
-            ZCACHEDVIDEOSCOUNT
-            ZCLOUDALBUMSUBTYPE
-            ZCLOUDCREATIONDATE
-            ZCLOUDDELETESTATE
-            ZCLOUDGUID
-            ZCLOUDLASTCONTRIBUTIONDATE
-            ZCLOUDLASTINTERESTINGCHANGEDATE
-            ZCLOUDLOCALSTATE
-            ZCLOUDMETADATA
-            ZCLOUDMULTIPLECONTRIBUTORSENABLED
-            ZCLOUDMULTIPLECONTRIBUTORSENABLEDLOCAL
-            ZCLOUDNOTIFICATIONSENABLED
-            ZCLOUDOWNEREMAILKEY
-            ZCLOUDOWNERFIRSTNAME
-            ZCLOUDOWNERFULLNAME
-            ZCLOUDOWNERHASHEDPERSONID
-            ZCLOUDOWNERISWHITELISTED
-            ZCLOUDOWNERLASTNAME
-            ZCLOUDPERSONID
-            ZCLOUDPUBLICURLENABLED
-            ZCLOUDPUBLICURLENABLEDLOCAL
-            ZCLOUDRELATIONSHIPSTATE
-            ZCLOUDRELATIONSHIPSTATELOCAL
-            ZCLOUDSUBSCRIPTIONDATE
-            ZCREATIONDATE
-            ZCUSTOMKEYASSET
-            ZCUSTOMQUERYPARAMETERS
-            ZCUSTOMQUERYTYPE
-            ZCUSTOMSORTASCENDING
-            ZCUSTOMSORTKEY
-            ZDUPLICATETYPE
-            ZENDDATE
-            ZHASUNSEENCONTENT
-            ZIMPORTEDBYBUNDLEIDENTIFIER
-            ZIMPORTSESSIONID
-            ZISOWNED
-            ZISPINNED
-            ZISPROTOTYPE
-            ZKEYASSET
-            ZKEYASSETFACEIDENTIFIER
-            ZKEYASSETFACETHUMBNAILINDEX
-            ZKIND
-            ZPARENTFOLDER
-            ZPENDINGITEMSCOUNT
-            ZPENDINGITEMSTYPE
-            ZPRIVACYSTATE
-            ZPROCESSINGVERSION
-            ZPROJECTDATA
-            ZPROJECTDOCUMENTTYPE
-            ZPROJECTEXTENSIONIDENTIFIER
-            ZPROJECTRENDERUUID
-            ZPUBLICURL
-            ZSEARCHINDEXREBUILDSTATE
-            ZSEARCHINDEXREBUILDSTATE1
-            ZSECONDARYKEYASSET
-            ZSTARTDATE
-            ZSYNCEVENTORDERKEY
-            ZSYNDICATE
-            ZTERTIARYKEYASSET
-            ZTITLE
-            ZTRASHEDDATE
-            ZTRASHEDSTATE
-            ZUNSEENASSETSCOUNT
-            ZUSERQUERYDATA
-            ZUUID
-            Z_ENT
-            Z_FOK_PARENTFOLDER
-            Z_OPT
-            Z_PK
-
-
-        :return:
+        :return: A DataFrame containing album details.
         """
-
         target_table = "ZGENERICALBUM"
+        query = f"""
+            SELECT Z_PK, ZUUID, ZTITLE, ZKIND, ZPARENTFOLDER, Z_FOK_PARENTFOLDER, ZCREATIONDATE, ZSTARTDATE, ZENDDATE,  
+                   ZTRASHEDSTATE, ZTRASHEDDATE 
+            FROM {target_table}
+        """
 
-if __name__ == "__main__":
-    pass
+        # Execute the query and fetch all rows
+        self.cursor.execute(query)
+        rows = self.cursor.fetchall()
+
+        # Define column names based on the query
+        columns = [
+            "Z_PK",
+            "ZUUID",
+            "ZTITLE",
+            "ZKIND",
+            "ZPARENTFOLDER",
+            "Z_FOK_PARENTFOLDER",
+            "ZCREATIONDATE",
+            "ZSTARTDATE",
+            "ZENDDATE",
+            "ZTRASHEDSTATE",
+            "ZTRASHEDDATE",
+        ]
+
+        # Create a Pandas DataFrame
+        df = pd.DataFrame(rows, columns=columns)
+
+        # Convert columns to integers while keeping NaN as NaN
+        df["ZKIND"] = pd.to_numeric(df["ZKIND"], errors="coerce").astype("Int64")
+        df["ZPARENTFOLDER"] = pd.to_numeric(df["ZPARENTFOLDER"], errors="coerce").astype("Int64")
+
+        return df
+
+    def get_folders_and_albums(self) -> Dict[str, List[Union[PhotoFolder, PhotoAlbum]]]:
+        albums_df = self.get_albums_df()
+
+        # !@# for debug
+        albums_df = albums_df[albums_df["ZTITLE"] != "22.05到25.03 未整理"]
+
+        user_created_folder_z_kind = 4000
+        _root_photo_folder_df: pd.DataFrame = albums_df[
+            (albums_df["ZKIND"] == user_created_folder_z_kind) & (albums_df["ZPARENTFOLDER"] == 1)
+        ].copy()
+
+        # Remove extracted folders from albums_df
+        albums_df = albums_df[~albums_df["Z_PK"].isin(_root_photo_folder_df["Z_PK"])]
+
+        user_created_folder_res_ls = []
+        pk_to_obj = {}
+        for _row_idx, _row in _root_photo_folder_df.iterrows():
+            pk = _row["Z_PK"]
+            created_datetime = _row["ZCREATIONDATE"]
+            photo_folder = PhotoFolder(
+                _row["ZTITLE"],
+                _row["ZUUID"],
+                pk_in_z_generic_album=pk,
+                created_datetime=created_datetime,
+            )
+            user_created_folder_res_ls.append(photo_folder)
+            pk_to_obj[pk] = photo_folder
+
+        while user_created_folder_z_kind in albums_df["ZKIND"].unique():
+            _rest_folder_df = albums_df[albums_df["ZKIND"] == user_created_folder_z_kind].copy()
+            albums_df = albums_df[~albums_df["Z_PK"].isin(_rest_folder_df["Z_PK"])]
+
+            for _row_idx, _row in _rest_folder_df.iterrows():
+                pk = _row["Z_PK"]
+                created_datetime = _row["ZCREATIONDATE"]
+                parent_pk = _row["ZPARENTFOLDER"]
+                assert parent_pk in pk_to_obj
+                parent_photo_folder: PhotoFolder = pk_to_obj[parent_pk]
+
+                photo_folder = PhotoFolder(
+                    _row["ZTITLE"],
+                    _row["ZUUID"],
+                    pk_in_z_generic_album=pk,
+                    created_datetime=created_datetime,
+                )
+
+                parent_photo_folder.add_data(photo_folder)
+                pk_to_obj[pk] = photo_folder
+
+        user_created_album_z_kind = 2
+        _user_created_album_df = albums_df[albums_df["ZKIND"] == user_created_album_z_kind]
+
+        user_created_album_res_ls = []
+        _standalone_album_df = _user_created_album_df[_user_created_album_df["ZPARENTFOLDER"] == 1].copy()
+
+        _user_created_album_df = _user_created_album_df[
+            ~_user_created_album_df["Z_PK"].isin(_standalone_album_df["Z_PK"])
+        ]
+
+        for _row_idx, _row in _standalone_album_df.iterrows():
+            photo_album = PhotoAlbum(
+                _row["ZTITLE"],
+                _row["ZUUID"],
+                pk_in_z_generic_album=_row["Z_PK"],
+                created_datetime=_row["ZCREATIONDATE"],
+            )
+            user_created_album_res_ls.append(photo_album)
+
+        for _row_idx, _row in _user_created_album_df.iterrows():
+            pk = _row["Z_PK"]
+            created_datetime = _row["ZCREATIONDATE"]
+
+            parent_pk = _row["ZPARENTFOLDER"]
+            assert parent_pk in pk_to_obj
+            parent_photo_folder: PhotoFolder = pk_to_obj[parent_pk]
+
+            photo_album = PhotoAlbum(
+                _row["ZTITLE"],
+                _row["ZUUID"],
+                pk_in_z_generic_album=_row["Z_PK"],
+                created_datetime=_row["ZCREATIONDATE"],
+            )
+
+            parent_photo_folder.add_data(photo_album)
+
+        return {
+            "folders": user_created_folder_res_ls,
+            "albums": user_created_album_res_ls,
+        }

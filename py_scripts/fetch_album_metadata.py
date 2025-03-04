@@ -51,33 +51,6 @@ def fetch_album_metadata():
 
             print(f"{title[:38]:<40} | {uuid:<36} | {creation_date:<19} | {cached_count}")
 
-class PhotoAlbum:
-    pass
-
-class PhotoFolder:
-    def __init__(self):
-        self.photo_albums: List[PhotoAlbum] = [PhotoAlbum()]
-
-
-
-def get_folders_and_albums_structure():
-    """
-    in iphone we can create folders and there will be albums inside the folders
-
-    the fetch_album_metadata() is just a toy function, i think we can forget it
-
-    but in the console we get before D App is actually a folder and there are several albums inside it
-
-    try to create a dict with the structure
-
-    {
-        "folders": {
-            "D App" :
-        }
-    }
-
-    :return:
-    """
 
 if __name__ == '__main__':
     fetch_album_metadata()
