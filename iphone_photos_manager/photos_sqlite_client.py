@@ -127,6 +127,73 @@ class PhotosSqliteClient:
 
         return res
 
+    def get_df_from_table_name(self, table_name: str) -> pd.DataFrame:
+        """
+        Retrieves all data from a given table and returns it as a Pandas DataFrame.
+
+        :param table_name: The name of the table to retrieve.
+        :return: A Pandas DataFrame containing the table's data.
+        """
+        query = f"SELECT * FROM {table_name}"
+
+        try:
+            df = pd.read_sql_query(query, self.conn)
+            return df
+        except Exception as e:
+            print(f"[*ERROR*] Failed to fetch data from {table_name}: {e}")
+            return pd.DataFrame()
+
+    def find_album_photo_related_table_name_ls(self) -> List[str]:
+        """Finds tables that likely map albums to photos."""
+        query = "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'Z_%ASSETS';"
+        self.cursor.execute(query)
+        return [row[0] for row in self.cursor.fetchall()]
+
+    def get_photo_count_per_album(self) -> Dict[int, int]:
+        """
+        Retrieves the number of photos in each album.
+
+        :return: A dictionary where keys are album PKs and values are photo counts.
+        """
+        query = """
+            SELECT Z_28ALBUMS AS album_id, COUNT(Z_3ASSETS) AS photo_count
+            FROM Z_28ASSETS
+            GROUP BY Z_28ALBUMS;
+        """
+        self.cursor.execute(query)
+        return {row[0]: row[1] for row in self.cursor.fetchall()}
+
+    def get_photos_per_album(self) -> Dict[int, List[Dict[str, str]]]:
+        """
+        Retrieves a list of photo details per album, including UUID and file path.
+
+        :return: A dictionary where keys are album PKs, values are lists of photo metadata (UUID, path).
+        """
+        query = """
+            SELECT 
+                Z_28ALBUMS AS album_id, 
+                Z_3ASSETS AS asset_id,
+                ZUUID,
+                ZDIRECTORY, 
+                ZFILENAME
+            FROM Z_28ASSETS
+            JOIN ZASSET ON Z_3ASSETS = ZASSET.Z_PK
+        """
+        self.cursor.execute(query)
+
+        album_photo_map = {}
+        for row in self.cursor.fetchall():
+            album_id, asset_id, uuid, directory, filename = row
+            photo_info = {
+                "uuid": uuid,
+                "path": f"{directory}/{filename}" if directory and filename else None
+            }
+            if album_id not in album_photo_map:
+                album_photo_map[album_id] = []
+            album_photo_map[album_id].append(photo_info)
+
+        return album_photo_map
+
     def get_albums_df(self) -> pd.DataFrame:
         """
         Retrieves album data from the ZGENERICALBUM table and returns it as a Pandas DataFrame.
@@ -233,6 +300,7 @@ class PhotosSqliteClient:
                 _row["ZUUID"],
                 pk_in_z_generic_album=_row["Z_PK"],
                 created_datetime=_row["ZCREATIONDATE"],
+                # photo_count=?,
             )
             user_created_album_res_ls.append(photo_album)
 
@@ -246,6 +314,7 @@ class PhotosSqliteClient:
                 _row["ZUUID"],
                 pk_in_z_generic_album=_row["Z_PK"],
                 created_datetime=_row["ZCREATIONDATE"],
+                # photo_count=?,
             )
 
             parent_photo_folder.add_data(photo_album)

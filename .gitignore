@@ -15,6 +15,7 @@
 
 ## Files
 kite_tutorial.ipynb
+*.csv
 
 
 # Byte-compiled / optimized / DLL files

@@ -37,9 +37,14 @@ if __name__ == "__main__":
         # print(col_name)
         pass
 
-    # folders_and_albums = psc.get_user_created_folders_and_albums()
+    folders_and_albums = psc.get_user_created_folders_and_albums()
     # folders = folders_and_albums["folders"]
     # for folder in folders:
     #     folder.view_structure()
 
-    psc.view_user_created_folders_and_albums()
+    # psc.view_user_created_folders_and_albums()
+
+    # print(psc.find_album_photo_related_table_name_ls())
+
+    # print(psc.get_df_from_table_name("Z_28ASSETS"))
+    print(psc.get_photos_per_album())
