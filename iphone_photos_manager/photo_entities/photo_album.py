@@ -19,3 +19,6 @@ class PhotoAlbum:
     def __repr__(self):
         s = f"<{self.__class__.__name__}:{self.title}>"
         return s
+
+    def view_info(self):
+        print(f"📖 {self.title}")

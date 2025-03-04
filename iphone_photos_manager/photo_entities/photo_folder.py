@@ -27,9 +27,40 @@ class PhotoFolder:
     def __len__(self):
         return len(self.data)
 
+    def __iter__(self):
+        return iter(self.data)
+
     def __repr__(self):
         s = f"<{self.__class__.__name__}:{self.title} [{len(self)}]>"
         return s
 
     def add_data(self, data: Union["PhotoFolder", PhotoAlbum]):
         self.data.append(data)
+
+    def view_structure(self, level: int = 0):
+        """
+        Prints a directory-like tree structure.
+        """
+        indent = " " * (level * 4)  # Indentation for hierarchy levels
+        print(f"{indent}📂 {self.title}")  # Print folder name
+
+        for item in self.data:
+            if isinstance(item, PhotoFolder):
+                item.view_structure(level + 1)  # Recursive call for subfolders
+            elif isinstance(item, PhotoAlbum):
+                print(f"{indent}    📖 {item.title}")
+
+    def get_all_albums(self) -> List[PhotoAlbum]:
+        result = []
+        for d in self:
+            if isinstance(d, PhotoAlbum):
+                result.append(d)
+
+            elif isinstance(d, PhotoFolder):
+                result.append(d.get_all_albums())
+
+        return result
+
+
+if __name__ == "__main__":
+    pass

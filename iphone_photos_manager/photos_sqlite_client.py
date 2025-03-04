@@ -168,7 +168,7 @@ class PhotosSqliteClient:
 
         return df
 
-    def get_folders_and_albums(self) -> Dict[str, List[Union[PhotoFolder, PhotoAlbum]]]:
+    def get_user_created_folders_and_albums(self) -> Dict[str, List[Union[PhotoFolder, PhotoAlbum]]]:
         albums_df = self.get_albums_df()
 
         # !@# for debug
@@ -237,9 +237,6 @@ class PhotosSqliteClient:
             user_created_album_res_ls.append(photo_album)
 
         for _row_idx, _row in _user_created_album_df.iterrows():
-            pk = _row["Z_PK"]
-            created_datetime = _row["ZCREATIONDATE"]
-
             parent_pk = _row["ZPARENTFOLDER"]
             assert parent_pk in pk_to_obj
             parent_photo_folder: PhotoFolder = pk_to_obj[parent_pk]
@@ -257,3 +254,27 @@ class PhotosSqliteClient:
             "folders": user_created_folder_res_ls,
             "albums": user_created_album_res_ls,
         }
+
+    def get_user_created_albums(self) -> List[PhotoAlbum]:
+        result = []
+        d = self.get_user_created_folders_and_albums()
+        for folder in d["folders"]:
+            result.append(folder.get_all_albums())
+
+        result.extend(d["albums"])
+        return result
+
+    def view_user_created_folders_and_albums(self):
+        d = self.get_user_created_folders_and_albums()
+
+        msg = "[*INFO*] - user created folders:"
+        print(msg)
+        for folder in d["folders"]:
+            folder.view_structure()
+        print()
+
+        msg = "[*INFO] - user created albums:"
+        print(msg)
+        for album in d["albums"]:
+            album.view_info()
+        print()

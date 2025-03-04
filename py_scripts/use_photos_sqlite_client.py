@@ -37,7 +37,9 @@ if __name__ == "__main__":
         # print(col_name)
         pass
 
-    folders_and_albums = psc.get_folders_and_albums()
+    # folders_and_albums = psc.get_user_created_folders_and_albums()
+    # folders = folders_and_albums["folders"]
+    # for folder in folders:
+    #     folder.view_structure()
 
-    folders = folders_and_albums["folders"]
-    # can you print the structure tree for folders?
+    psc.view_user_created_folders_and_albums()
