@@ -8,7 +8,7 @@ import pathlib
 from typing import Optional
 
 
-class Photo:
+class MediaAsset:
     def __init__(self,
                 filename:str,
                 file_path:pathlib.Path,

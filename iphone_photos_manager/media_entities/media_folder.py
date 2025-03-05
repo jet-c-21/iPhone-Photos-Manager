@@ -7,10 +7,10 @@ Create Date: 2025-03-04
 import datetime
 from typing import List, Optional, Union
 
-from iphone_photos_manager.media_entities.photo_album import PhotoAlbum
+from iphone_photos_manager.media_entities.media_album import MediaAlbum
 
 
-class PhotoFolder:
+class MediaFolder:
     def __init__(
         self,
         title: str,
@@ -22,7 +22,7 @@ class PhotoFolder:
         self.uuid = uuid
         self.pk_in_z_generic_album = pk_in_z_generic_album
         self.created_datetime = created_datetime
-        self.data: List[Union[PhotoFolder, PhotoAlbum]] = []
+        self.data: List[Union[MediaFolder, MediaAlbum]] = []
 
     def __len__(self):
         return len(self.data)
@@ -34,7 +34,7 @@ class PhotoFolder:
         s = f"<{self.__class__.__name__}:{self.title} [{len(self)}]>"
         return s
 
-    def add_data(self, data: Union["PhotoFolder", PhotoAlbum]):
+    def add_data(self, data: Union["MediaFolder", MediaAlbum]):
         self.data.append(data)
 
     def view_structure(self, level: int = 0):
@@ -45,18 +45,18 @@ class PhotoFolder:
         print(f"{indent}📂 {self.title}")  # Print folder name
 
         for item in self.data:
-            if isinstance(item, PhotoFolder):
+            if isinstance(item, MediaFolder):
                 item.view_structure(level + 1)  # Recursive call for subfolders
-            elif isinstance(item, PhotoAlbum):
+            elif isinstance(item, MediaAlbum):
                 print(f"{indent}    📖 {item.title}")
 
-    def get_all_albums(self) -> List[PhotoAlbum]:
+    def get_all_albums(self) -> List[MediaAlbum]:
         result = []
         for d in self:
-            if isinstance(d, PhotoAlbum):
+            if isinstance(d, MediaAlbum):
                 result.append(d)
 
-            elif isinstance(d, PhotoFolder):
+            elif isinstance(d, MediaFolder):
                 result.append(d.get_all_albums())
 
         return result

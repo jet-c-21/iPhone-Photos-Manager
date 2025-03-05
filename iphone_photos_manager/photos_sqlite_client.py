@@ -85,7 +85,7 @@ from typing import Dict, List, Union
 
 import pandas as pd
 
-from iphone_photos_manager.photo_entities import PhotoAlbum, PhotoFolder
+from iphone_photos_manager.media_entities import MediaAlbum, MediaFolder
 
 
 class PhotosSqliteClient:
@@ -143,13 +143,13 @@ class PhotosSqliteClient:
             print(f"[*ERROR*] Failed to fetch data from {table_name}: {e}")
             return pd.DataFrame()
 
-    def find_album_photo_related_table_name_ls(self) -> List[str]:
+    def find_album_media_asset_related_table_name_ls(self) -> List[str]:
         """Finds tables that likely map albums to photos."""
         query = "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'Z_%ASSETS';"
         self.cursor.execute(query)
         return [row[0] for row in self.cursor.fetchall()]
 
-    def get_photo_count_per_album(self) -> Dict[int, int]:
+    def get_media_asset_count_per_album(self) -> Dict[int, int]:
         """
         Retrieves the number of photos in each album.
 
@@ -163,7 +163,7 @@ class PhotosSqliteClient:
         self.cursor.execute(query)
         return {row[0]: row[1] for row in self.cursor.fetchall()}
 
-    def get_photos_per_album(self) -> Dict[int, List[Dict[str, str]]]:
+    def get_media_asset_per_album(self) -> Dict[int, List[Dict[str, str]]]:
         """
         Retrieves a list of photo details per album, including UUID and file path.
 
@@ -235,7 +235,7 @@ class PhotosSqliteClient:
 
         return df
 
-    def get_user_created_folders_and_albums(self) -> Dict[str, List[Union[PhotoFolder, PhotoAlbum]]]:
+    def get_user_created_folders_and_albums(self) -> Dict[str, List[Union[MediaFolder, MediaAlbum]]]:
         albums_df = self.get_albums_df()
 
         # !@# for debug
@@ -254,7 +254,7 @@ class PhotosSqliteClient:
         for _row_idx, _row in _root_photo_folder_df.iterrows():
             pk = _row["Z_PK"]
             created_datetime = _row["ZCREATIONDATE"]
-            photo_folder = PhotoFolder(
+            photo_folder = MediaFolder(
                 _row["ZTITLE"],
                 _row["ZUUID"],
                 pk_in_z_generic_album=pk,
@@ -272,9 +272,9 @@ class PhotosSqliteClient:
                 created_datetime = _row["ZCREATIONDATE"]
                 parent_pk = _row["ZPARENTFOLDER"]
                 assert parent_pk in pk_to_obj
-                parent_photo_folder: PhotoFolder = pk_to_obj[parent_pk]
+                parent_photo_folder: MediaFolder = pk_to_obj[parent_pk]
 
-                photo_folder = PhotoFolder(
+                photo_folder = MediaFolder(
                     _row["ZTITLE"],
                     _row["ZUUID"],
                     pk_in_z_generic_album=pk,
@@ -295,7 +295,7 @@ class PhotosSqliteClient:
         ]
 
         for _row_idx, _row in _standalone_album_df.iterrows():
-            photo_album = PhotoAlbum(
+            photo_album = MediaAlbum(
                 _row["ZTITLE"],
                 _row["ZUUID"],
                 pk_in_z_generic_album=_row["Z_PK"],
@@ -307,9 +307,9 @@ class PhotosSqliteClient:
         for _row_idx, _row in _user_created_album_df.iterrows():
             parent_pk = _row["ZPARENTFOLDER"]
             assert parent_pk in pk_to_obj
-            parent_photo_folder: PhotoFolder = pk_to_obj[parent_pk]
+            parent_photo_folder: MediaFolder = pk_to_obj[parent_pk]
 
-            photo_album = PhotoAlbum(
+            photo_album = MediaAlbum(
                 _row["ZTITLE"],
                 _row["ZUUID"],
                 pk_in_z_generic_album=_row["Z_PK"],
@@ -324,7 +324,7 @@ class PhotosSqliteClient:
             "albums": user_created_album_res_ls,
         }
 
-    def get_user_created_albums(self) -> List[PhotoAlbum]:
+    def get_user_created_albums(self) -> List[MediaAlbum]:
         result = []
         d = self.get_user_created_folders_and_albums()
         for folder in d["folders"]:

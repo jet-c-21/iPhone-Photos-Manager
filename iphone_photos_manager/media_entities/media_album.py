@@ -8,7 +8,7 @@ import datetime
 from typing import Optional
 
 
-class PhotoAlbum:
+class MediaAlbum:
     def __init__(
         self,
         title: str,
