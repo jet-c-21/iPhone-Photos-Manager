@@ -7,7 +7,7 @@ Create Date: 2025-03-04
 import datetime
 from typing import List, Optional, Union
 
-from iphone_photos_manager.photo_entities.photo_album import PhotoAlbum
+from iphone_photos_manager.media_entities.photo_album import PhotoAlbum
 
 
 class PhotoFolder:

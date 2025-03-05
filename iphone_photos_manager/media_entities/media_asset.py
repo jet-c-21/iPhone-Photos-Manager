@@ -7,8 +7,9 @@ import datetime
 import pathlib
 from typing import Optional
 
+
 class Photo:
-    def __len__(self,
+    def __init__(self,
                 filename:str,
                 file_path:pathlib.Path,
                 uuid,
@@ -23,5 +24,5 @@ class Photo:
                 pk_in_z_asset_album: Optional[int] = None,
                 created_datetime:Optional[datetime.datetime]=None,
                 modified_datetime:Optional[datetime.datetime]=None,
-
                 ):
+        pass
