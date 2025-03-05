@@ -84,6 +84,7 @@ import sqlite3
 from typing import Dict, List, Union
 
 import pandas as pd
+from tqdm.auto import tqdm
 
 from iphone_photos_manager.media_entities import MediaAlbum, MediaAsset, MediaFolder
 from iphone_photos_manager.utils.general import apple_ts_to_datetime
@@ -93,6 +94,9 @@ class PhotosSqliteClient:
     def __init__(self, photos_sqlite_path: pathlib.Path):
         self.photos_sqlite_path = photos_sqlite_path
         assert self.photos_sqlite_path.is_file(), f"{self.photos_sqlite_path} is not a file"
+
+        self.dcim_dir = self.photos_sqlite_path.parent.parent / "DCIM"
+        assert self.dcim_dir.is_dir(), f"{self.dcim_dir} is not a directory"
 
         # Persistent connection
         self.conn = sqlite3.connect(self.photos_sqlite_path)
@@ -219,7 +223,8 @@ class PhotosSqliteClient:
         media_assets = []
         for _, row in assets_df.iterrows():
             if row["ZDIRECTORY"]:
-                file_path = pathlib.Path(row["ZDIRECTORY"]) / row["ZFILENAME"]
+                dcim_sub_dir_name = pathlib.Path(row["ZDIRECTORY"]).name
+                file_path = self.dcim_dir / dcim_sub_dir_name / row["ZFILENAME"]
             else:
                 file_path = None
 
@@ -418,3 +423,14 @@ class PhotosSqliteClient:
         for album in d["albums"]:
             album.view_info()
         print()
+
+    def export_user_created_folders_and_albums(self, export_root_dir: pathlib.Path):
+        folders_and_albums = self.get_user_created_folders_and_albums()
+
+        for folder in tqdm(folders_and_albums["folders"], desc="exporting user created folders"):
+            folder.export(export_root_dir)
+            # break
+
+        for album in tqdm(folders_and_albums["albums"], desc="exporting user created albums"):
+            album.export(export_root_dir)
+            # break

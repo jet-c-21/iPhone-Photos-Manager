@@ -7,7 +7,7 @@ Create Date: 2025-03-05
 import datetime
 import pathlib
 import shutil
-from typing import ClassVar, List, Optional
+from typing import ClassVar, List, Optional, Union
 
 
 class MediaAsset:
@@ -82,13 +82,22 @@ class MediaAsset:
     def view_info(self):
         print(f"{self.media_emoji} {self.filename} : {self.file_path}")
 
-    def export(self, export_path: pathlib.Path):
+    def export(self, export_path: pathlib.Path, verbose=True) -> Union[pathlib.Path, None]:
+        if not self.file_path.exists():
+            if verbose:
+                msg = f"[*DEBUG*] - [{self.media_emoji} export] - {self.file_path} is not existed"
+                print(msg)
+            return
+
         if isinstance(self.file_path, pathlib.Path):
             shutil.copy(self.file_path, export_path)
+            return export_path
 
-    def export_to_dir(self, export_dir: pathlib.Path, mkdir=True):
+    def export_to_dir(self, export_dir: pathlib.Path, mkdir=True) -> pathlib.Path:
         if mkdir:
             export_dir.mkdir(parents=True, exist_ok=True)
 
         dest_path = export_dir / self.filename
         self.export(dest_path)
+
+        return dest_path
