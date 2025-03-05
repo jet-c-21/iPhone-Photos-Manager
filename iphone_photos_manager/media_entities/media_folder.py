@@ -3,8 +3,8 @@ Author: Jet C.
 GitHub: https://github.com/jet-c-21
 Create Date: 2025-03-04
 """
-import pathlib
 import datetime
+import pathlib
 from typing import List, Optional, Union
 
 from iphone_photos_manager.media_entities.media_album import MediaAlbum
@@ -75,9 +75,13 @@ class MediaFolder:
 
         for d in self:
             if isinstance(d, MediaFolder):
-                pass
+                _dir_need_create = dest_dir / d.title
+                _dir_need_create.mkdir(parents=True, exist_ok=True)
+                d.export(_dir_need_create)
+
             elif isinstance(d, MediaAlbum):
-                pass
+                d.export(dest_dir)
+
             else:
                 raise ValueError(f"cannot export type of data: {type(d)}")
 
