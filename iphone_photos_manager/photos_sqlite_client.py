@@ -85,7 +85,8 @@ from typing import Dict, List, Union
 
 import pandas as pd
 
-from iphone_photos_manager.media_entities import MediaAlbum, MediaFolder
+from iphone_photos_manager.media_entities import MediaAlbum, MediaAsset, MediaFolder
+from iphone_photos_manager.utils.general import apple_ts_to_datetime
 
 
 class PhotosSqliteClient:
@@ -163,11 +164,11 @@ class PhotosSqliteClient:
         self.cursor.execute(query)
         return {row[0]: row[1] for row in self.cursor.fetchall()}
 
-    def get_media_asset_per_album(self) -> Dict[int, List[Dict[str, str]]]:
+    def get_assets_df(self) -> pd.DataFrame:
         """
-        Retrieves a list of photo details per album, including UUID and file path.
+        Retrieves all media asset data from the database and returns it as a Pandas DataFrame.
 
-        :return: A dictionary where keys are album PKs, values are lists of photo metadata (UUID, path).
+        :return: A DataFrame containing all assets with metadata.
         """
         query = """
             SELECT 
@@ -175,24 +176,90 @@ class PhotosSqliteClient:
                 Z_3ASSETS AS asset_id,
                 ZUUID,
                 ZDIRECTORY, 
-                ZFILENAME
+                ZFILENAME,
+                ZDATECREATED,
+                ZMODIFICATIONDATE,
+                ZWIDTH,
+                ZHEIGHT,
+                ZORIENTATION,
+                ZFAVORITE,
+                ZHIDDEN,
+                ZLATITUDE,
+                ZLONGITUDE,
+                ZLOCATIONDATA,
+                ZUNIFORMTYPEIDENTIFIER,
+                ZVIDEOCPDURATIONVALUE,
+                ZDURATION
             FROM Z_28ASSETS
             JOIN ZASSET ON Z_3ASSETS = ZASSET.Z_PK
         """
-        self.cursor.execute(query)
 
-        album_photo_map = {}
-        for row in self.cursor.fetchall():
-            album_id, asset_id, uuid, directory, filename = row
-            photo_info = {
-                "uuid": uuid,
-                "path": f"{directory}/{filename}" if directory and filename else None
-            }
-            if album_id not in album_photo_map:
-                album_photo_map[album_id] = []
-            album_photo_map[album_id].append(photo_info)
+        df = pd.read_sql_query(query, self.conn)
 
-        return album_photo_map
+        # Convert timestamp columns to readable datetime format
+        df["ZDATECREATED"] = df["ZDATECREATED"].apply(apple_ts_to_datetime)
+        df["ZMODIFICATIONDATE"] = df["ZMODIFICATIONDATE"].apply(apple_ts_to_datetime)
+
+        # Convert boolean columns
+        df["ZFAVORITE"] = df["ZFAVORITE"].astype(bool)
+        df["ZHIDDEN"] = df["ZHIDDEN"].astype(bool)
+
+        # we dont need fillna so far, and avoid using try
+
+        return df
+
+    def get_all_media_assets(self) -> List[MediaAsset]:
+        """
+        Converts the asset DataFrame into a list of `MediaAsset` objects.
+
+        :return: A list of `MediaAsset` instances.
+        """
+        assets_df = self.get_assets_df()
+
+        media_assets = []
+        for _, row in assets_df.iterrows():
+            if row["ZDIRECTORY"]:
+                file_path = pathlib.Path(row["ZDIRECTORY"]) / row["ZFILENAME"]
+            else:
+                file_path = None
+
+            duration = row["ZVIDEOCPDURATIONVALUE"] or row["ZDURATION"]
+
+            media_asset = MediaAsset(
+                filename=row["ZFILENAME"],
+                file_path=file_path,
+                uuid=row["ZUUID"],
+                album_id=row["album_id"],
+                width=row["ZWIDTH"],
+                height=row["ZHEIGHT"],
+                orientation=row["ZORIENTATION"],
+                file_size=None,  # No file size column available
+                is_favorite=row["ZFAVORITE"],
+                latitude=row["ZLATITUDE"],
+                longitude=row["ZLONGITUDE"],
+                location_data=row["ZLOCATIONDATA"],
+                media_type=row["ZUNIFORMTYPEIDENTIFIER"],
+                duration=duration,
+                pk_in_z_asset_album=row["asset_id"],
+                created_datetime=row["ZDATECREATED"],
+                modified_datetime=row["ZMODIFICATIONDATE"],
+            )
+            media_assets.append(media_asset)
+
+        return media_assets
+
+    def get_album_id_to_media_asset_ls(self) -> Dict[int, List[MediaAsset]]:
+        """
+        Retrieves a list of media assets (photos/videos) per album.
+        """
+        result = {}
+        for ma in self.get_all_media_assets():
+            if ma.album_id not in result:
+                result[ma.album_id] = [ma]
+            else:
+                result[ma.album_id].append(ma)
+
+        return result
 
     def get_albums_df(self) -> pd.DataFrame:
         """
@@ -242,26 +309,26 @@ class PhotosSqliteClient:
         albums_df = albums_df[albums_df["ZTITLE"] != "22.05到25.03 未整理"]
 
         user_created_folder_z_kind = 4000
-        _root_photo_folder_df: pd.DataFrame = albums_df[
+        _root_media_folder_df: pd.DataFrame = albums_df[
             (albums_df["ZKIND"] == user_created_folder_z_kind) & (albums_df["ZPARENTFOLDER"] == 1)
         ].copy()
 
         # Remove extracted folders from albums_df
-        albums_df = albums_df[~albums_df["Z_PK"].isin(_root_photo_folder_df["Z_PK"])]
+        albums_df = albums_df[~albums_df["Z_PK"].isin(_root_media_folder_df["Z_PK"])]
 
         user_created_folder_res_ls = []
         pk_to_obj = {}
-        for _row_idx, _row in _root_photo_folder_df.iterrows():
+        for _row_idx, _row in _root_media_folder_df.iterrows():
             pk = _row["Z_PK"]
             created_datetime = _row["ZCREATIONDATE"]
-            photo_folder = MediaFolder(
+            media_folder = MediaFolder(
                 _row["ZTITLE"],
                 _row["ZUUID"],
                 pk_in_z_generic_album=pk,
                 created_datetime=created_datetime,
             )
-            user_created_folder_res_ls.append(photo_folder)
-            pk_to_obj[pk] = photo_folder
+            user_created_folder_res_ls.append(media_folder)
+            pk_to_obj[pk] = media_folder
 
         while user_created_folder_z_kind in albums_df["ZKIND"].unique():
             _rest_folder_df = albums_df[albums_df["ZKIND"] == user_created_folder_z_kind].copy()
@@ -272,17 +339,17 @@ class PhotosSqliteClient:
                 created_datetime = _row["ZCREATIONDATE"]
                 parent_pk = _row["ZPARENTFOLDER"]
                 assert parent_pk in pk_to_obj
-                parent_photo_folder: MediaFolder = pk_to_obj[parent_pk]
+                parent_media_folder: MediaFolder = pk_to_obj[parent_pk]
 
-                photo_folder = MediaFolder(
+                media_folder = MediaFolder(
                     _row["ZTITLE"],
                     _row["ZUUID"],
                     pk_in_z_generic_album=pk,
                     created_datetime=created_datetime,
                 )
 
-                parent_photo_folder.add_data(photo_folder)
-                pk_to_obj[pk] = photo_folder
+                parent_media_folder.add_data(media_folder)
+                pk_to_obj[pk] = media_folder
 
         user_created_album_z_kind = 2
         _user_created_album_df = albums_df[albums_df["ZKIND"] == user_created_album_z_kind]
@@ -294,30 +361,34 @@ class PhotosSqliteClient:
             ~_user_created_album_df["Z_PK"].isin(_standalone_album_df["Z_PK"])
         ]
 
+        album_id_to_media_asset_ls = self.get_album_id_to_media_asset_ls()
+
         for _row_idx, _row in _standalone_album_df.iterrows():
-            photo_album = MediaAlbum(
+            _media_assets = album_id_to_media_asset_ls.get(_row["Z_PK"], None)
+            media_album = MediaAlbum(
                 _row["ZTITLE"],
                 _row["ZUUID"],
                 pk_in_z_generic_album=_row["Z_PK"],
                 created_datetime=_row["ZCREATIONDATE"],
-                # photo_count=?,
+                media_asset_data=_media_assets,
             )
-            user_created_album_res_ls.append(photo_album)
+            user_created_album_res_ls.append(media_album)
 
         for _row_idx, _row in _user_created_album_df.iterrows():
             parent_pk = _row["ZPARENTFOLDER"]
             assert parent_pk in pk_to_obj
-            parent_photo_folder: MediaFolder = pk_to_obj[parent_pk]
+            parent_media_folder: MediaFolder = pk_to_obj[parent_pk]
 
-            photo_album = MediaAlbum(
+            _media_assets = album_id_to_media_asset_ls.get(_row["Z_PK"], None)
+            media_album = MediaAlbum(
                 _row["ZTITLE"],
                 _row["ZUUID"],
                 pk_in_z_generic_album=_row["Z_PK"],
                 created_datetime=_row["ZCREATIONDATE"],
-                # photo_count=?,
+                media_asset_data=_media_assets,
             )
 
-            parent_photo_folder.add_data(photo_album)
+            parent_media_folder.add_data(media_album)
 
         return {
             "folders": user_created_folder_res_ls,

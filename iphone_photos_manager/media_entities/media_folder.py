@@ -3,7 +3,7 @@ Author: Jet C.
 GitHub: https://github.com/jet-c-21
 Create Date: 2025-03-04
 """
-
+import pathlib
 import datetime
 from typing import List, Optional, Union
 
@@ -42,13 +42,13 @@ class MediaFolder:
         Prints a directory-like tree structure.
         """
         indent = " " * (level * 4)  # Indentation for hierarchy levels
-        print(f"{indent}📂 {self.title}")  # Print folder name
+        print(f"{indent}📂 {self.title} [{len(self)}]")  # Print folder name
 
         for item in self.data:
             if isinstance(item, MediaFolder):
                 item.view_structure(level + 1)  # Recursive call for subfolders
             elif isinstance(item, MediaAlbum):
-                print(f"{indent}    📖 {item.title}")
+                print(f"{indent}    📖 {item.title} [{len(item)}]")
 
     def get_all_albums(self) -> List[MediaAlbum]:
         result = []
@@ -60,6 +60,27 @@ class MediaFolder:
                 result.append(d.get_all_albums())
 
         return result
+
+    def export(self, export_root_dir:pathlib.Path):
+        """
+        in the end there will be a dir path like:
+
+        export_root_dir / self.title
+
+        :param export_root_dir:
+        :return:
+        """
+        dest_dir = export_root_dir / self.title
+        dest_dir.mkdir(parents=True, exist_ok=True)
+
+        for d in self:
+            if isinstance(d, MediaFolder):
+                pass
+            elif isinstance(d, MediaAlbum):
+                pass
+            else:
+                raise ValueError(f"cannot export type of data: {type(d)}")
+
 
 
 if __name__ == "__main__":
